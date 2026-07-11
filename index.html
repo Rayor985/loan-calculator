@@ -349,7 +349,7 @@
     <div class="form-group">
       <label>贷款期限</label>
       <div class="input-wrapper">
-        <input type="text" id="loanMonths" placeholder="1-360" value="36">
+        <input type="text" id="loanMonths" placeholder="1-360" value="36" oninput="syncPrepayMonths()">
         <span class="unit">月</span>
       </div>
     </div>
@@ -363,7 +363,7 @@
     <div class="form-group">
       <label>提前还款月数</label>
       <div class="input-wrapper">
-        <input type="text" id="prepayMonths" placeholder="可选，多少个月后提前还" value="12">
+        <input type="text" id="prepayMonths" placeholder="可选，多少个月后提前还" value="36">
         <span class="unit">月</span>
       </div>
     </div>
@@ -597,6 +597,12 @@ document.getElementById('loanAmount').addEventListener('blur', function() {
     this.value = v.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
 });
+
+// Sync loan duration with prepay duration
+function syncPrepayMonths() {
+  const loanMonths = document.getElementById('loanMonths').value;
+  document.getElementById('prepayMonths').value = loanMonths;
+}
 
 // Enter key triggers calculation
 document.addEventListener('keydown', function(e) {
