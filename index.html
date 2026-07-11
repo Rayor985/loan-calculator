@@ -330,46 +330,53 @@
 <body>
 
 <div class="header">
-  <h1>个人贷款计算器</h1>
-  <p>等额本息还款 · 按揭贷款计算</p>
+<h1>车贷计算器</h1>
+<p>等额本息还款 · 车贷计算</p>
 </div>
 
 <div class="container">
-  <!-- Input Card -->
-  <div class="card">
-    <div class="card-title">贷款参数设置</div>
-    <div class="form-grid">
-      <div class="form-group">
-        <label>贷款金额</label>
-        <div class="input-wrapper">
-          <input type="text" id="loanAmount" placeholder="请输入贷款金额" value="1000000">
-          <span class="unit">元</span>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>贷款期限</label>
-        <div class="input-wrapper">
-          <input type="text" id="loanMonths" placeholder="1-360" value="360">
-          <span class="unit">月</span>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>贷款年利率</label>
-        <div class="input-wrapper">
-          <input type="text" id="annualRate" placeholder="请输入年利率" value="3.5">
-          <span class="unit">%</span>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>还款方式</label>
-        <div class="input-wrapper">
-          <select id="repayType">
-            <option value="debx" selected>等额本息还款</option>
-            <option value="debj">等额本金还款</option>
-          </select>
-        </div>
+<!-- Input Card -->
+<div class="card">
+  <div class="card-title">贷款参数设置</div>
+  <div class="form-grid">
+    <div class="form-group">
+      <label>贷款金额</label>
+      <div class="input-wrapper">
+        <input type="text" id="loanAmount" placeholder="请输入贷款金额" value="10">
+        <span class="unit">万元</span>
       </div>
     </div>
+    <div class="form-group">
+      <label>贷款期限</label>
+      <div class="input-wrapper">
+        <input type="text" id="loanMonths" placeholder="1-360" value="36">
+        <span class="unit">月</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>贷款年利率</label>
+      <div class="input-wrapper">
+        <input type="text" id="annualRate" placeholder="请输入年利率" value="3.5">
+        <span class="unit">%</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>提前还款月数</label>
+      <div class="input-wrapper">
+        <input type="text" id="prepayMonths" placeholder="可选，多少个月后提前还" value="12">
+        <span class="unit">月</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>还款方式</label>
+      <div class="input-wrapper">
+        <select id="repayType">
+          <option value="debx" selected>等额本息还款</option>
+          <option value="debj">等额本金还款</option>
+        </select>
+      </div>
+    </div>
+  </div>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="calculate()">开始计算</button>
       <button class="btn btn-secondary" onclick="resetForm()">重新填写</button>
@@ -386,12 +393,16 @@
         <div class="value" id="monthlyPayment">-</div>
       </div>
       <div class="summary-item">
-        <div class="label">还款总额</div>
+        <div class="label">已还款总额</div>
         <div class="value" id="totalPayment">-</div>
       </div>
       <div class="summary-item">
-        <div class="label">支付利息</div>
+        <div class="label">已还利息总额</div>
         <div class="value" id="totalInterest">-</div>
+      </div>
+      <div class="summary-item" style="grid-column: span 3; background: #fff0f0;">
+        <div class="label">剩余本金</div>
+        <div class="value" id="remainingPrincipal">-</div>
       </div>
     </div>
 
@@ -512,12 +523,13 @@ function calcDEBJ(principal, months, monthlyRate) {
 }
 
 function calculate() {
-  const amount = parseFloat(document.getElementById('loanAmount').value.replace(/,/g, ''));
+  const amount = parseFloat(document.getElementById('loanAmount').value.replace(/,/g, '')) * 10000;
   const months = parseInt(document.getElementById('loanMonths').value);
   const rate = parseFloat(document.getElementById('annualRate').value);
+  const prepay = parseInt(document.getElementById('prepayMonths').value);
   const type = document.getElementById('repayType').value;
 
-  if (!validate(amount, months, rate)) return;
+  if (!validate(amount / 10000, months, rate)) return;
 
   const monthlyRate = rate / 100 / 12;
   let result;
@@ -536,8 +548,19 @@ function calculate() {
     document.getElementById('thMonthly').textContent = '月供金额';
   }
 
-  document.getElementById('totalPayment').innerHTML = formatSummary(result.totalPayment);
-  document.getElementById('totalInterest').innerHTML = formatSummary(result.totalInterest);
+  // Handle提前还款
+  let pIdx = Math.min(prepay, result.schedule.length);
+  let paidTotal = 0;
+  let paidInterest = 0;
+  for(let i=0; i<pIdx; i++) {
+    paidTotal += result.schedule[i].payment;
+    paidInterest += result.schedule[i].interest;
+  }
+  let remaining = result.schedule[pIdx-1] ? result.schedule[pIdx-1].remaining : amount;
+
+  document.getElementById('totalPayment').innerHTML = formatSummary(paidTotal);
+  document.getElementById('totalInterest').innerHTML = formatSummary(paidInterest);
+  document.getElementById('remainingPrincipal').innerHTML = formatSummary(remaining);
 
   // Build table
   const tbody = document.getElementById('scheduleBody');
