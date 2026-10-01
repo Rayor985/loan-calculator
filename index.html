@@ -33,6 +33,11 @@
       --space-2xl: 48px;
     }
 
+    html, body {
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
       background: var(--color-bg);
@@ -235,11 +240,14 @@
     .table-wrapper {
       max-height: 480px;
       overflow-y: auto;
+      overflow-x: auto;
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
+      -webkit-overflow-scrolling: touch;
     }
     .table-wrapper::-webkit-scrollbar {
       width: 6px;
+      height: 6px;
     }
     .table-wrapper::-webkit-scrollbar-track {
       background: #f5f5f5;
@@ -252,6 +260,7 @@
       width: 100%;
       border-collapse: collapse;
       font-size: 14px;
+      table-layout: fixed;
     }
     thead {
       position: sticky;
@@ -261,19 +270,24 @@
     thead th {
       background: var(--color-accent);
       color: #fff;
-      padding: 12px 10px;
+      padding: 12px 8px;
       font-weight: 500;
       text-align: right;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     thead th:first-child {
       text-align: center;
+      width: 60px;
     }
     tbody td {
-      padding: 10px 10px;
+      padding: 10px 8px;
       text-align: right;
       border-bottom: 1px solid #f0f0f0;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     tbody td:first-child {
       text-align: center;
@@ -303,8 +317,14 @@
       .form-grid {
         grid-template-columns: 1fr;
       }
+      .form-group {
+        min-width: 0;
+      }
       .summary-grid {
         grid-template-columns: 1fr;
+      }
+      .summary-item {
+        min-width: 0;
       }
       .summary-item .value {
         font-size: 22px;
@@ -323,6 +343,36 @@
       }
       .header h1 {
         font-size: 24px;
+      }
+      .header p {
+        font-size: 14px;
+      }
+      .card-title {
+        font-size: 16px;
+      }
+      .input-wrapper input,
+      .input-wrapper select {
+        font-size: 16px;
+        padding: 10px 12px;
+      }
+      .input-wrapper .unit {
+        padding: 0 10px;
+        font-size: 13px;
+      }
+      table {
+        font-size: 13px;
+      }
+      thead th {
+        padding: 10px 6px;
+        font-size: 13px;
+      }
+      tbody td {
+        padding: 8px 6px;
+        font-size: 13px;
+      }
+      .tip {
+        font-size: 13px;
+        padding: var(--space-md);
       }
     }
 
