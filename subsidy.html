@@ -379,6 +379,56 @@
       color: var(--green-dark);
     }
 
+    /* ---------- Series / Trim selects ---------- */
+    .select-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .select-wrapper select {
+      width: 100%;
+      padding: 14px 40px 14px 16px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-md);
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .select-wrapper select:focus {
+      border-color: var(--green-dark);
+      box-shadow: 0 0 0 3px rgba(22, 51, 0, 0.12);
+    }
+    .select-wrapper select:hover { border-color: var(--green-dark); }
+    .select-wrapper::after {
+      content: "";
+      position: absolute;
+      right: 16px;
+      width: 10px;
+      height: 10px;
+      border-right: 2px solid var(--ink-soft);
+      border-bottom: 2px solid var(--ink-soft);
+      transform: translateY(-3px) rotate(45deg);
+      pointer-events: none;
+    }
+    .select-wrapper.loading select { color: var(--gray); }
+    .form-group.full { grid-column: 1 / -1; }
+
+    .vehicle-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      margin-top: 4px;
+      min-height: 20px;
+    }
+    .vehicle-label:empty { display: none; }
+
     /* ---------- Formula note ---------- */
     .formula {
       margin-top: var(--sp-6);
@@ -484,6 +534,22 @@
 
     <div class="form-grid">
       <div class="form-group">
+        <label for="series">车系</label>
+        <div class="select-wrapper">
+          <select id="series" onchange="onSeriesChange()">
+            <option value="">请选择车系</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="trim">车型</label>
+        <div class="select-wrapper">
+          <select id="trim" onchange="onTrimChange()">
+            <option value="">请先选择车系</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
         <label for="price">提车价</label>
         <div class="input-wrapper">
           <input type="text" id="price" placeholder="请输入提车价" value="149900">
@@ -534,6 +600,7 @@
 
     <div class="headline-figure">
       <div class="label">单台贴息</div>
+      <div class="vehicle-label" id="vehicleLabel"></div>
       <div class="amount" id="subsidy">—</div>
       <div class="note" id="subsidyNote"></div>
     </div>
@@ -584,6 +651,153 @@
 </footer>
 
 <script>
+/* ==========================================================================
+   车系 / 车型数据
+   来源：搜狐汽车车型库 db.auto.sohu.com（JSON-LD 结构化数据，2026-10 抓取）
+   车系范围：东风日产官网在售车系
+   ========================================================================== */
+const SERIES_DATA = {
+  "轩逸": [
+    "2026款 经典 1.6L CVT安心版",
+    "2026款 1.6L CVT舒适版",
+    "2026款 1.6L CVT舒享版",
+    "2026款 1.6L CVT 科技版",
+    "2026款 1.6L CVT 舒享科技版",
+    "2026款 1.6L CVT 豪华科技版",
+    "2026款 1.6L CVT 旗舰版"
+  ],
+  "轩逸·经典": [
+    "2026款 经典 1.6L CVT安心版",
+    "2026款 经典 1.6L CVT舒畅版",
+    "2026款 经典 1.6L CVT XE 舒心天窗版"
+  ],
+  "天籁": [
+    "2026款 鸿蒙座舱 2.0L 舒适版",
+    "2026款 鸿蒙座舱 2.0L 超舒适版",
+    "2026款 鸿蒙座舱 2.0L 智能超舒适版",
+    "2026款 鸿蒙座舱 2.0L 行政版",
+    "2026款 鸿蒙座舱 2.0T 旗舰版",
+    "2026款 鸿蒙座舱 2.0T S380大师版"
+  ],
+  "N7": [
+    "2027款 510 Air",
+    "2027款 510 Pro",
+    "2027款 510 Max 激光雷达版",
+    "2027款 625 Pro",
+    "2027款 625 Max 激光雷达版",
+    "2027款 615 Max 黑骑士 激光雷达版",
+    "2026款 625 Pro 黑骑士",
+    "2026款 625 Pro 莱茵骑士",
+    "2026款 625 Max 黑骑士",
+    "2026款 625 Max 莱茵骑士"
+  ],
+  "N6": [
+    "2026款 180 Air",
+    "2026款 180 Pro 青春版",
+    "2026款 180 Pro",
+    "2026款 180 Pro+",
+    "2026款 180 Pro+ 黑骑士",
+    "2026款 180 Max",
+    "2026款 180 Max+",
+    "2026款 180 Max+ 黑骑士",
+    "2026款 170 Max+旗舰"
+  ],
+  "NX8": [
+    "2026款 150 Pro",
+    "2026款 150 Max",
+    "2026款 260 Pro",
+    "2026款 310 Max"
+  ],
+  "逍客": [
+    "2025款 改款 荣誉 2.0L CVT XV真心版",
+    "2025款 改款 荣誉 2.0L CVT XV+领先版",
+    "2023款 1.3T CVT精英版",
+    "2023款 1.3T CVT豪华版",
+    "2023款 1.3T CVT黑金版",
+    "2023款 1.3T CVT领航版",
+    "2023款 1.3T CVT旗舰版"
+  ],
+  "奇骏": [
+    "2025款 荣誉 2.0L 两驱真心版",
+    "2025款 荣誉 2.0L 两驱领先版",
+    "2022款 VC-Turbo 300 CVT 2WD星月限定版",
+    "2021款 VC-Turbo 300 CVT 2WD时尚版",
+    "2021款 VC-Turbo 300 CVT 2WD舒适版",
+    "2021款 VC-Turbo 300 CVT 2WD豪华版",
+    "2021款 VC-Turbo 300 CVT 4WD豪华版",
+    "2021款 VC-Turbo 300 CVT 4WD尊享版"
+  ],
+  "探陆": [
+    "2026款 380VC-TURBO 两驱舒适超高配 6座",
+    "2026款 380VC-TURBO 两驱舒适超高配 7座",
+    "2026款 380VC-TURBO 四驱大满配 6座",
+    "2026款 380VC-TURBO 四驱大满配 7座",
+    "2024款 380VC-TURBO 两驱智尚版 7座",
+    "2024款 380VC-TURBO 两驱智悦版 6座",
+    "2024款 380VC-TURBO 四驱智驾版 6座"
+  ],
+  "骐达": [
+    "2024款 1.6L CVT 酷动版",
+    "2024款 1.6L CVT 智行版",
+    "2024款 1.6L CVT 智尊版"
+  ],
+  "劲客": [
+    "2023款 劲情版 1.5L XL 时尚版",
+    "2023款 劲情版 1.5L XV 豪华版",
+    "2023款 劲情版 1.5L XV TOP 旗舰版"
+  ],
+  "艾睿雅 ARIYA": [
+    "2024款 500",
+    "2024款 600",
+    "2024款 600 Plus",
+    "2024款 Performance",
+    "2024款 Performance Plus"
+  ]
+};
+
+/* 初始化车系下拉 */
+function initSeries() {
+  const sel = document.getElementById('series');
+  Object.keys(SERIES_DATA).forEach(function (name) {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name + '（' + SERIES_DATA[name].length + ' 款）';
+    sel.appendChild(opt);
+  });
+}
+
+/* 车系变化 → 重建车型下拉 */
+function onSeriesChange() {
+  const series = document.getElementById('series').value;
+  const trimSel = document.getElementById('trim');
+  trimSel.innerHTML = '';
+
+  if (!series) {
+    const o = document.createElement('option');
+    o.value = ''; o.textContent = '请先选择车系';
+    trimSel.appendChild(o);
+    return;
+  }
+  const o0 = document.createElement('option');
+  o0.value = ''; o0.textContent = '请选择车型';
+  trimSel.appendChild(o0);
+
+  SERIES_DATA[series].forEach(function (t) {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    trimSel.appendChild(opt);
+  });
+}
+
+/* 车型变化 → 更新测算标题 */
+function onTrimChange() {
+  const series = document.getElementById('series').value;
+  const trim = document.getElementById('trim').value;
+  if (series && trim) {
+    document.getElementById('vehicleLabel').textContent = series + ' · ' + trim;
+  }
+}
+
 /* Excel PMT() 等价实现，返回负值（与 Excel 一致） */
 function pmt(rate, nper, pv) {
   if (rate === 0) return -pv / nper;
@@ -664,6 +878,12 @@ function calc() {
     '按 ' + term + ' 期、结算利率 ' + settleRate + '%' +
     (clientRate === 0 ? '、客户零利率' : '、客户利率 ' + clientRate + '%') + ' 测算';
 
+  // 车辆标签
+  const seriesVal = document.getElementById('series').value;
+  const trimVal = document.getElementById('trim').value;
+  document.getElementById('vehicleLabel').textContent =
+    (seriesVal && trimVal) ? seriesVal + ' · ' + trimVal : '';
+
   document.getElementById('downAmt').innerHTML = wrap(downAmt, 0);
   document.getElementById('loanAmt').innerHTML = wrap(loanAmt, 0);
   document.getElementById('monthly').innerHTML = wrap(clientMonthly, 2);
@@ -707,18 +927,24 @@ function calc() {
 }
 
 function resetForm() {
+  document.getElementById('series').value = '';
+  onSeriesChange();
   document.getElementById('price').value = '';
   document.getElementById('downPct').value = '';
   document.getElementById('term').value = '';
   document.getElementById('settleRate').value = '';
   document.getElementById('clientRate').value = '';
+  document.getElementById('vehicleLabel').textContent = '';
   document.getElementById('resultsCard').classList.remove('show');
-  document.getElementById('price').focus();
+  document.getElementById('series').focus();
 }
 
 document.addEventListener('keydown', function (e) {
-  if (e.key === 'Enter') calc();
+  if (e.key === 'Enter' && e.target.tagName !== 'SELECT') calc();
 });
+
+/* 初始化 */
+initSeries();
 </script>
 
 </body>
