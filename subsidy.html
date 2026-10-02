@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>贴息计算器 · 单台贴息测算</title>
+  <style>
+    /* ============================================================
+       Design System: Wise
+       Source: nexu-io/open-design → design-systems/wise (Apache-2.0)
+       - Wise Sans 900 display @ line-height 0.85, "calt"
+       - Lime Green #9fe870 on Dark Green #163300 text
+       - Pill buttons (9999px), scale(1.05) hover / scale(0.95) active
+       - Ring shadows only — no traditional shadows
+       - Cards 30–40px radius
+       ============================================================ */
+
+    :root {
+      --green: #9fe870;
+      --green-dark: #163300;
+      --green-hover: #cdffad;
+      --mint: #e2f6d5;
+      --ink: #0e0f0c;
+      --ink-soft: #454745;
+      --gray: #868685;
+      --surface: #ffffff;
+      --surface-tint: #e8ebe6;
+      --canvas: #fbfbfa;
+      --border: rgba(14, 15, 12, 0.12);
+      --danger: #d03238;
+      --warning: #ffd11a;
+      --info: rgba(56, 200, 255, 0.10);
+
+      --r-sm: 16px;
+      --r-md: 20px;
+      --r-lg: 30px;
+      --r-xl: 40px;
+      --r-pill: 9999px;
+
+      --ring: rgba(14, 15, 12, 0.12) 0px 0px 0px 1px;
+
+      --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+      --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
+
+      --font-body: Inter, "Helvetica Neue", Helvetica, Arial,
+                   "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --font-display: "Wise Sans", Inter, "Helvetica Neue", Arial,
+                      "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body { overflow-x: hidden; max-width: 100%; }
+
+    body {
+      font-family: var(--font-body);
+      font-feature-settings: "calt";
+      background: var(--canvas);
+      color: var(--ink);
+      min-height: 100vh;
+      line-height: 1.44;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ---------- Nav ---------- */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(251, 251, 250, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: var(--sp-3) var(--sp-6);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-4);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      min-width: 0;
+    }
+    .nav-brand .dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--green);
+      flex: 0 0 auto;
+    }
+    .nav-brand .mark {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.1px;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    .nav-links { display: flex; gap: var(--sp-2); align-items: center; }
+    .nav-link {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      text-decoration: none;
+      padding: 6px 14px;
+      border-radius: var(--r-pill);
+      transition: background 0.15s, transform 0.15s;
+      white-space: nowrap;
+    }
+    .nav-link:hover { background: rgba(211, 242, 192, 0.4); transform: scale(1.05); }
+    .nav-link.active { background: var(--green); color: var(--green-dark); }
+
+    /* ---------- Hero ---------- */
+    .hero {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: var(--sp-12) var(--sp-6) var(--sp-8);
+    }
+    .hero .kicker {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      color: var(--green-dark);
+      background: var(--green);
+      border-radius: var(--r-pill);
+      padding: 4px 14px;
+      margin-bottom: var(--sp-5);
+    }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: 72px;
+      font-weight: 900;
+      line-height: 0.85;
+      letter-spacing: -1px;
+      color: var(--ink);
+      margin-bottom: var(--sp-5);
+      max-width: 12em;
+    }
+    .hero h1 em {
+      font-style: normal;
+      color: var(--green-dark);
+      background: var(--green);
+      border-radius: var(--r-pill);
+      padding: 0 0.14em;
+      display: inline-block;
+      line-height: 0.9;
+    }
+    .hero p {
+      font-size: 18px;
+      font-weight: 400;
+      line-height: 1.44;
+      color: var(--ink-soft);
+      max-width: 40em;
+    }
+
+    /* ---------- Container ---------- */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 var(--sp-6) var(--sp-12);
+    }
+
+    /* ---------- Card ---------- */
+    .card {
+      background: var(--surface);
+      border-radius: var(--r-xl);
+      box-shadow: var(--ring);
+      padding: var(--sp-8);
+      margin-bottom: var(--sp-5);
+    }
+    .card-head { margin-bottom: var(--sp-6); }
+    .card-head h2 {
+      font-size: 26px;
+      font-weight: 600;
+      line-height: 1.23;
+      letter-spacing: -0.39px;
+      color: var(--ink);
+    }
+    .card-head .hint {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--gray);
+      margin-top: var(--sp-1);
+    }
+
+    /* ---------- Form ---------- */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--sp-5) var(--sp-6);
+    }
+    .form-group { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+    .form-group label {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.108px;
+      color: var(--ink-soft);
+    }
+    .input-wrapper {
+      display: flex;
+      align-items: center;
+      background: var(--surface-tint);
+      border: 1px solid transparent;
+      border-radius: var(--r-sm);
+      overflow: hidden;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .input-wrapper:focus-within {
+      background: var(--surface);
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(159, 232, 112, 0.35);
+    }
+    .input-wrapper input,
+    .input-wrapper select {
+      flex: 1;
+      min-width: 0;
+      border: none;
+      outline: none;
+      padding: 12px 14px;
+      font-family: var(--font-body);
+      font-feature-settings: "tnum";
+      font-variant-numeric: tabular-nums;
+      font-size: 18px;
+      font-weight: 600;
+      background: transparent;
+      color: var(--ink);
+    }
+    .input-wrapper input::placeholder { color: var(--gray); font-weight: 400; }
+    .input-wrapper select { cursor: pointer; appearance: none; -webkit-appearance: none; }
+    .input-wrapper .unit {
+      padding: 0 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray);
+      white-space: nowrap;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      border-left: 1px solid var(--border);
+    }
+    .input-wrapper.pct input { text-align: right; }
+
+    /* ---------- Buttons ---------- */
+    .btn-row { margin-top: var(--sp-8); display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+    .btn {
+      border: none;
+      border-radius: var(--r-pill);
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.108px;
+      padding: 12px 26px;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+      line-height: 1;
+    }
+    .btn-primary { background: var(--green); color: var(--green-dark); }
+    .btn-primary:hover { background: var(--green-hover); transform: scale(1.05); }
+    .btn-primary:active { transform: scale(0.95); }
+    .btn-secondary { background: rgba(22, 51, 0, 0.08); color: var(--ink); }
+    .btn-secondary:hover { background: rgba(22, 51, 0, 0.14); transform: scale(1.05); }
+    .btn-secondary:active { transform: scale(0.95); }
+
+    /* ---------- Results ---------- */
+    .results { display: none; }
+    .results.show { display: block; animation: pop 0.28s cubic-bezier(0.2, 0, 0.2, 1); }
+    @keyframes pop {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Hero figure — the number that matters */
+    .headline-figure {
+      background: var(--green);
+      border-radius: var(--r-xl);
+      padding: var(--sp-8);
+      margin-bottom: var(--sp-6);
+    }
+    .headline-figure .label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--green-dark);
+      opacity: 0.75;
+      margin-bottom: var(--sp-2);
+    }
+    .headline-figure .amount {
+      font-family: var(--font-display);
+      font-size: 64px;
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -1px;
+      color: var(--green-dark);
+      font-feature-settings: "tnum";
+      font-variant-numeric: tabular-nums;
+      word-break: break-word;
+    }
+    .headline-figure .amount .cur {
+      font-size: 24px;
+      font-weight: 600;
+      margin-left: 6px;
+      letter-spacing: 0;
+    }
+    .headline-figure .note {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--green-dark);
+      opacity: 0.75;
+      margin-top: var(--sp-3);
+    }
+
+    /* Metric grid */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-3);
+      margin-bottom: var(--sp-6);
+    }
+    .metric {
+      background: var(--surface-tint);
+      border-radius: var(--r-md);
+      padding: var(--sp-5);
+      min-width: 0;
+    }
+    .metric .k {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray);
+      margin-bottom: var(--sp-2);
+    }
+    .metric .v {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.396px;
+      color: var(--ink);
+      font-feature-settings: "tnum";
+      font-variant-numeric: tabular-nums;
+      word-break: break-word;
+    }
+    .metric .v .cur { font-size: 13px; font-weight: 400; color: var(--gray); margin-left: 2px; }
+    .metric.accent { background: var(--mint); }
+    .metric.accent .v { color: var(--green-dark); }
+
+    /* Breakdown table */
+    .breakdown { border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--border); }
+    .breakdown table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 16px;
+      font-feature-settings: "tnum";
+      font-variant-numeric: tabular-nums;
+    }
+    .breakdown th,
+    .breakdown td {
+      padding: 14px 18px;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+    }
+    .breakdown th {
+      background: var(--surface-tint);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      white-space: nowrap;
+    }
+    .breakdown th:first-child,
+    .breakdown td:first-child { text-align: left; }
+    .breakdown td { font-weight: 400; color: var(--ink); }
+    .breakdown td:first-child { font-weight: 600; color: var(--ink-soft); font-size: 15px; }
+    .breakdown tr:last-child td { border-bottom: none; }
+    .breakdown tr.total td {
+      background: var(--mint);
+      font-weight: 600;
+      color: var(--green-dark);
+    }
+
+    /* ---------- Formula note ---------- */
+    .formula {
+      margin-top: var(--sp-6);
+      background: var(--info);
+      border-radius: var(--r-md);
+      padding: var(--sp-5);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--ink-soft);
+    }
+    .formula strong { font-weight: 600; color: var(--ink); }
+    .formula code {
+      font-family: "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: rgba(14, 15, 12, 0.06);
+      padding: 1px 5px;
+      border-radius: 6px;
+    }
+
+    .notice {
+      margin-top: var(--sp-5);
+      padding: var(--sp-5);
+      background: var(--surface-tint);
+      border-radius: var(--r-md);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--ink-soft);
+    }
+    .notice strong { font-weight: 600; color: var(--ink); }
+
+    /* ---------- Footer ---------- */
+    .footer {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: var(--sp-8) var(--sp-6);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--sp-4);
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: var(--gray);
+    }
+    .footer a { color: var(--green-dark); font-weight: 600; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 992px) {
+      .metric-grid { grid-template-columns: repeat(2, 1fr); }
+      .hero h1 { font-size: 56px; }
+    }
+    @media (max-width: 640px) {
+      .nav-inner { padding: var(--sp-2) var(--sp-4); }
+      .nav-link { padding: 5px 10px; font-size: 13px; }
+      .hero { padding: var(--sp-8) var(--sp-4) var(--sp-6); }
+      .hero h1 { font-size: 40px; letter-spacing: -0.6px; }
+      .hero p { font-size: 16px; }
+      .container { padding: 0 var(--sp-4) var(--sp-10); }
+      .card { padding: var(--sp-6) var(--sp-5); border-radius: var(--r-lg); }
+      .card-head h2 { font-size: 22px; }
+      .form-grid { grid-template-columns: 1fr; gap: var(--sp-4); }
+      .headline-figure { padding: var(--sp-6) var(--sp-5); border-radius: var(--r-lg); }
+      .headline-figure .amount { font-size: 44px; }
+      .metric-grid { grid-template-columns: 1fr; }
+      .btn-row { flex-direction: column; }
+      .btn { width: 100%; text-align: center; }
+      .breakdown th, .breakdown td { padding: 12px 12px; font-size: 14px; }
+      .breakdown th { font-size: 12px; }
+      .footer { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <span class="dot"></span>
+      <span class="mark">贴息计算器</span>
+    </div>
+    <div class="nav-links">
+      <a class="nav-link" href="index.html">贷款计算器</a>
+      <a class="nav-link active" href="subsidy.html">贴息计算器</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <span class="kicker">单台贴息测算</span>
+  <h1>算清一台车<br>贴<em>多少钱</em></h1>
+  <p>按提车价、首付比例与结算利率，算出单台贴息、客户月供与利息，并给出完整拆解过程。</p>
+</header>
+
+<div class="container">
+
+  <!-- Inputs -->
+  <section class="card">
+    <div class="card-head">
+      <h2>测算参数</h2>
+      <p class="hint">填写提车价与金融方案，其余金额自动推导</p>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="price">提车价</label>
+        <div class="input-wrapper">
+          <input type="text" id="price" placeholder="请输入提车价" value="149900">
+          <span class="unit">元</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="downPct">首付比例</label>
+        <div class="input-wrapper pct">
+          <input type="text" id="downPct" placeholder="如 20" value="20">
+          <span class="unit">%</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="term">贷款期限</label>
+        <div class="input-wrapper">
+          <input type="text" id="term" placeholder="1-360" value="60">
+          <span class="unit">月</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="settleRate">结算利率（年）</label>
+        <div class="input-wrapper pct">
+          <input type="text" id="settleRate" placeholder="如 5.9" value="5.9">
+          <span class="unit">%</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="clientRate">客户利率（年）</label>
+        <div class="input-wrapper pct">
+          <input type="text" id="clientRate" placeholder="0 表示客户零利率" value="0">
+          <span class="unit">%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="calc()">开始测算</button>
+      <button class="btn btn-secondary" onclick="resetForm()">重新填写</button>
+    </div>
+  </section>
+
+  <!-- Results -->
+  <section class="card results" id="resultsCard">
+    <div class="card-head">
+      <h2>测算结果</h2>
+    </div>
+
+    <div class="headline-figure">
+      <div class="label">单台贴息</div>
+      <div class="amount" id="subsidy">—</div>
+      <div class="note" id="subsidyNote"></div>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric">
+        <div class="k">首付金额</div>
+        <div class="v" id="downAmt">—</div>
+      </div>
+      <div class="metric accent">
+        <div class="k">贷款金额</div>
+        <div class="v" id="loanAmt">—</div>
+      </div>
+      <div class="metric">
+        <div class="k">客户月供</div>
+        <div class="v" id="monthly">—</div>
+      </div>
+      <div class="metric">
+        <div class="k">客户利息</div>
+        <div class="v" id="clientInt">—</div>
+      </div>
+    </div>
+
+    <div class="breakdown">
+      <table>
+        <thead>
+          <tr>
+            <th>项目</th>
+            <th>数值</th>
+          </tr>
+        </thead>
+        <tbody id="breakdownBody"></tbody>
+      </table>
+    </div>
+
+    <div class="formula" id="formulaBox"></div>
+
+    <div class="notice">
+      <strong>说明</strong>　贴息按“结算利率总利息 − 客户利率总利息”计算。客户零利率时，等价于 <code>贷款金额 × (期限+1) ÷ 2 × 结算利率 ÷ 12</code>（等额本金计息）。结果仅供参考，以实际合同为准。
+    </div>
+  </section>
+
+</div>
+
+<footer class="footer">
+  <span>贴息计算器 · 数据仅供参考</span>
+  <a href="index.html">← 返回贷款计算器</a>
+</footer>
+
+<script>
+/* Excel PMT() 等价实现，返回负值（与 Excel 一致） */
+function pmt(rate, nper, pv) {
+  if (rate === 0) return -pv / nper;
+  return -(pv * rate) / (1 - Math.pow(1 + rate, -nper));
+}
+
+function money(n) {
+  return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function money0(n) {
+  return n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+function wrap(n, dec) {
+  const v = dec === 0 ? money0(n) : money(n);
+  return v + '<span class="cur">元</span>';
+}
+
+function num(id) {
+  return parseFloat(String(document.getElementById(id).value).replace(/,/g, '').trim());
+}
+
+function validate(price, downPct, term, settleRate, clientRate) {
+  if (isNaN(price) || price <= 0) { alert('请输入有效的提车价'); return false; }
+  if (isNaN(downPct) || downPct < 0 || downPct >= 100) { alert('首付比例请输入 0–99 之间的数值'); return false; }
+  if (isNaN(term) || term < 1 || term > 360 || term !== Math.floor(term)) { alert('贷款期限请输入 1-360 的整数'); return false; }
+  if (isNaN(settleRate) || settleRate < 0 || settleRate > 100) { alert('请输入有效的结算利率'); return false; }
+  if (isNaN(clientRate) || clientRate < 0 || clientRate > 100) { alert('请输入有效的客户利率'); return false; }
+  if (clientRate > settleRate) { alert('客户利率不应高于结算利率（否则客户承担利息高于结算，无贴息）'); return false; }
+  return true;
+}
+
+function calc() {
+  const price = num('price');
+  const downPct = num('downPct');
+  const term = num('term');
+  const settleRate = num('settleRate');
+  const clientRate = num('clientRate');
+
+  if (!validate(price, downPct, term, settleRate, clientRate)) return;
+
+  const downRatio = downPct / 100;
+  const downAmt = price * downRatio;          // D = B*C
+  const loanRatio = 1 - downRatio;            // E = 1-C
+  const loanAmt = price - downAmt;            // F = B-D
+
+  const sRateM = settleRate / 100 / 12;       // H/12
+  const cRateM = clientRate / 100 / 12;       // I/12
+
+  const clientMonthly = -pmt(cRateM, term, loanAmt);   // J
+  const clientInterest = clientMonthly * term - loanAmt; // K
+
+  // L 单台贴息 —— 与 Excel 完全一致的两个分支
+  let subsidy, formulaText;
+  if (clientRate === 0) {
+    subsidy = (term * loanAmt - term * (term - 1) * loanAmt / term / 2) * (settleRate / 100) / 12;
+    formulaText =
+      '<strong>计算过程（客户零利率）</strong><br>' +
+      '贴息 = 贷款金额 × (期限 + 1) ÷ 2 × 结算利率 ÷ 12<br>' +
+      '= ' + money0(loanAmt) + ' × (' + term + ' + 1) ÷ 2 × ' + settleRate + '% ÷ 12<br>' +
+      '= <strong>' + money(subsidy) + ' 元</strong>';
+  } else {
+    const settleTotal = -pmt(sRateM, term, loanAmt) * term;
+    const clientTotal = -pmt(cRateM, term, loanAmt) * term;
+    subsidy = -pmt(sRateM, term, loanAmt) * term + pmt(cRateM, term, loanAmt) * term;
+    formulaText =
+      '<strong>计算过程</strong><br>' +
+      '贴息 = 按结算利率还款总额 − 按客户利率还款总额<br>' +
+      '= ' + money(settleTotal) + ' − ' + money(clientTotal) + '<br>' +
+      '= <strong>' + money(subsidy) + ' 元</strong>';
+  }
+
+  const settleMonthly = -pmt(sRateM, term, loanAmt);
+
+  // 渲染
+  document.getElementById('subsidy').innerHTML =
+    money(subsidy) + '<span class="cur">元</span>';
+  document.getElementById('subsidyNote').textContent =
+    '按 ' + term + ' 期、结算利率 ' + settleRate + '%' +
+    (clientRate === 0 ? '、客户零利率' : '、客户利率 ' + clientRate + '%') + ' 测算';
+
+  document.getElementById('downAmt').innerHTML = wrap(downAmt, 0);
+  document.getElementById('loanAmt').innerHTML = wrap(loanAmt, 0);
+  document.getElementById('monthly').innerHTML = wrap(clientMonthly, 2);
+  document.getElementById('clientInt').innerHTML = wrap(clientInterest, 2);
+
+  const rows = [
+    ['提车价', money0(price) + ' 元'],
+    ['首付比例', downPct + '%'],
+    ['首付金额', money0(downAmt) + ' 元'],
+    ['贷款比例', (loanRatio * 100).toFixed(0) + '%'],
+    ['贷款金额', money0(loanAmt) + ' 元'],
+    ['贷款期限', term + ' 期'],
+    ['结算利率（年）', settleRate + '%'],
+    ['结算利率月供', money(settleMonthly) + ' 元'],
+    ['结算利率还款总额', money(settleMonthly * term) + ' 元'],
+    ['客户利率（年）', clientRate + '%'],
+    ['客户月供', money(clientMonthly) + ' 元'],
+    ['客户还款总额', money(clientMonthly * term) + ' 元'],
+    ['客户利息总额', money(clientInterest) + ' 元'],
+    ['单台贴息', money(subsidy) + ' 元'],
+  ];
+  const tbody = document.getElementById('breakdownBody');
+  tbody.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  rows.forEach(([k, v], i) => {
+    const tr = document.createElement('tr');
+    if (i === rows.length - 1) tr.className = 'total';
+    const td1 = document.createElement('td');
+    td1.textContent = k;
+    const td2 = document.createElement('td');
+    td2.textContent = v;
+    tr.appendChild(td1); tr.appendChild(td2);
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+
+  document.getElementById('formulaBox').innerHTML = formulaText;
+
+  document.getElementById('resultsCard').classList.add('show');
+  document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetForm() {
+  document.getElementById('price').value = '';
+  document.getElementById('downPct').value = '';
+  document.getElementById('term').value = '';
+  document.getElementById('settleRate').value = '';
+  document.getElementById('clientRate').value = '';
+  document.getElementById('resultsCard').classList.remove('show');
+  document.getElementById('price').focus();
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') calc();
+});
+</script>
+
+</body>
+</html>
