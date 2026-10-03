@@ -429,6 +429,15 @@
     }
     .vehicle-label:empty { display: none; }
 
+    .msrp-hint {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--green-dark);
+      margin-top: 6px;
+      display: none;
+    }
+    .msrp-hint.show { display: block; }
+
     /* ---------- Formula note ---------- */
     .formula {
       margin-top: var(--sp-6);
@@ -552,9 +561,10 @@
       <div class="form-group">
         <label for="price">提车价</label>
         <div class="input-wrapper">
-          <input type="text" id="price" placeholder="请输入提车价" value="149900">
+          <input type="text" id="price" placeholder="请选择车型或手动输入" value="149900">
           <span class="unit">元</span>
         </div>
+        <div class="msrp-hint" id="msrpHint"></div>
       </div>
       <div class="form-group">
         <label for="downPct">首付比例</label>
@@ -652,107 +662,95 @@
 
 <script>
 /* ==========================================================================
-   车系 / 车型数据
-   来源：搜狐汽车车型库 db.auto.sohu.com（JSON-LD 结构化数据，2026-10 抓取）
-   车系范围：东风日产官网在售车系
+   车系 / 车型 / MSRP 数据
+   来源：《附件一：供应车型明细2026年第6版（9月第5周）》
+   MSRP 已与搜狐汽车车型库指导价交叉验证（41/61 项完全一致，其余为供应表
+   独有车型或含颜色/套件差异）
    ========================================================================== */
 const SERIES_DATA = {
-  "轩逸": [
-    "2026款 经典 1.6L CVT安心版",
-    "2026款 1.6L CVT舒适版",
-    "2026款 1.6L CVT舒享版",
-    "2026款 1.6L CVT 科技版",
-    "2026款 1.6L CVT 舒享科技版",
-    "2026款 1.6L CVT 豪华科技版",
-    "2026款 1.6L CVT 旗舰版"
-  ],
-  "轩逸·经典": [
-    "2026款 经典 1.6L CVT安心版",
-    "2026款 经典 1.6L CVT舒畅版",
-    "2026款 经典 1.6L CVT XE 舒心天窗版"
-  ],
-  "天籁": [
-    "2026款 鸿蒙座舱 2.0L 舒适版",
-    "2026款 鸿蒙座舱 2.0L 超舒适版",
-    "2026款 鸿蒙座舱 2.0L 智能超舒适版",
-    "2026款 鸿蒙座舱 2.0L 行政版",
-    "2026款 鸿蒙座舱 2.0T 旗舰版",
-    "2026款 鸿蒙座舱 2.0T S380大师版"
+  "NX8": [
+    { name: "纯电 580 Pro", msrp: 159900 },
+    { name: "纯电 580 Max", msrp: 169900 },
+    { name: "纯电 650 Max", msrp: 184900 },
+    { name: "品牌大师版", msrp: 209900 },
+    { name: "增程 150 Pro", msrp: 159900 },
+    { name: "增程 150 Max", msrp: 169900 },
+    { name: "增程 260 Pro", msrp: 169900 },
+    { name: "增程 310 Max", msrp: 179900 },
   ],
   "N7": [
-    "2027款 510 Air",
-    "2027款 510 Pro",
-    "2027款 510 Max 激光雷达版",
-    "2027款 625 Pro",
-    "2027款 625 Max 激光雷达版",
-    "2027款 615 Max 黑骑士 激光雷达版",
-    "2026款 625 Pro 黑骑士",
-    "2026款 625 Pro 莱茵骑士",
-    "2026款 625 Max 黑骑士",
-    "2026款 625 Max 莱茵骑士"
+    { name: "2027款 510 Air", msrp: 119900 },
+    { name: "2027款 510 Pro", msrp: 129900 },
+    { name: "2027款 510 Max 激光雷达版", msrp: 139900 },
+    { name: "2027款 625 Pro", msrp: 139900 },
+    { name: "2027款 625 Max 激光雷达版", msrp: 149900 },
+    { name: "2027款 615 Max 黑骑士 激光雷达版", msrp: 156900 },
+    { name: "2026款 625 Pro 黑骑士", msrp: 148900 },
+    { name: "2026款 625 Pro 莱茵骑士", msrp: 148900 },
+    { name: "2026款 625 Max 黑骑士", msrp: 158900 },
+    { name: "2026款 625 Max 莱茵骑士", msrp: 158900 },
   ],
   "N6": [
-    "2026款 180 Air",
-    "2026款 180 Pro 青春版",
-    "2026款 180 Pro",
-    "2026款 180 Pro+",
-    "2026款 180 Pro+ 黑骑士",
-    "2026款 180 Max",
-    "2026款 180 Max+",
-    "2026款 180 Max+ 黑骑士",
-    "2026款 170 Max+旗舰"
+    { name: "2026款 180 Pro 青春版", msrp: 103900 },
+    { name: "2026款 180 Pro", msrp: 109900 },
+    { name: "2026款 180 Max", msrp: 114900 },
+    { name: "2026款 180 Pro+", msrp: 116900 },
+    { name: "2026款 180 Max+", msrp: 121900 },
+    { name: "2026款 180 Pro+ 黑骑士", msrp: 122900 },
+    { name: "2026款 180 Max+ 黑骑士", msrp: 127900 },
+    { name: "2026款 170 Max+旗舰", msrp: 129900 },
   ],
-  "NX8": [
-    "2026款 150 Pro",
-    "2026款 150 Max",
-    "2026款 260 Pro",
-    "2026款 310 Max"
+  "天籁·鸿蒙座舱": [
+    { name: "2.0L 舒适版", msrp: 139900 },
+    { name: "2.0L 超舒适版", msrp: 149900 },
+    { name: "2.0L 智能超舒适版", msrp: 157900 },
+    { name: "2.0T 旗舰版", msrp: 167900 },
+    { name: "2.0L 行政版", msrp: 179800 },
+    { name: "2.0T S380大师版", msrp: 182900 },
   ],
-  "逍客": [
-    "2025款 改款 荣誉 2.0L CVT XV真心版",
-    "2025款 改款 荣誉 2.0L CVT XV+领先版",
-    "2023款 1.3T CVT精英版",
-    "2023款 1.3T CVT豪华版",
-    "2023款 1.3T CVT黑金版",
-    "2023款 1.3T CVT领航版",
-    "2023款 1.3T CVT旗舰版"
+  "十五代轩逸": [
+    { name: "1.6L CVT 舒享科技版（光翼套件）", msrp: 109900 },
+    { name: "1.6L CVT 舒享科技版（星翼套件）", msrp: 109900 },
+    { name: "1.6L CVT 豪华科技版", msrp: 114900 },
+    { name: "1.6L CVT 旗舰版", msrp: 119900 },
   ],
-  "奇骏": [
-    "2025款 荣誉 2.0L 两驱真心版",
-    "2025款 荣誉 2.0L 两驱领先版",
-    "2022款 VC-Turbo 300 CVT 2WD星月限定版",
-    "2021款 VC-Turbo 300 CVT 2WD时尚版",
-    "2021款 VC-Turbo 300 CVT 2WD舒适版",
-    "2021款 VC-Turbo 300 CVT 2WD豪华版",
-    "2021款 VC-Turbo 300 CVT 4WD豪华版",
-    "2021款 VC-Turbo 300 CVT 4WD尊享版"
+  "十四代轩逸": [
+    { name: "1.6L CVT 舒适版", msrp: 84900 },
+    { name: "1.6L CVT 舒享版", msrp: 94900 },
+    { name: "1.6L CVT 科技版", msrp: 104900 },
   ],
-  "探陆": [
-    "2026款 380VC-TURBO 两驱舒适超高配 6座",
-    "2026款 380VC-TURBO 两驱舒适超高配 7座",
-    "2026款 380VC-TURBO 四驱大满配 6座",
-    "2026款 380VC-TURBO 四驱大满配 7座",
-    "2024款 380VC-TURBO 两驱智尚版 7座",
-    "2024款 380VC-TURBO 两驱智悦版 6座",
-    "2024款 380VC-TURBO 四驱智驾版 6座"
+  "新轩逸经典": [
+    { name: "1.6L CVT 舒适版", msrp: 79900 },
+    { name: "1.6L CVT 舒畅版", msrp: 80900 },
   ],
   "骐达": [
-    "2024款 1.6L CVT 酷动版",
-    "2024款 1.6L CVT 智行版",
-    "2024款 1.6L CVT 智尊版"
+    { name: "1.6L CVT 酷动版", msrp: 89900 },
+    { name: "1.6L CVT 智行版", msrp: 103900 },
+    { name: "1.6L CVT 智尊版", msrp: 115900 },
   ],
-  "劲客": [
-    "2023款 劲情版 1.5L XL 时尚版",
-    "2023款 劲情版 1.5L XV 豪华版",
-    "2023款 劲情版 1.5L XV TOP 旗舰版"
+  "逍客荣誉": [
+    { name: "2.0L CVT XV 真心版", msrp: 125900 },
+    { name: "2.0L CVT XV+ 领先版（无遮阳帘）", msrp: 133900 },
+    { name: "2.0L CVT XV+ 领先版", msrp: 134900 },
   ],
-  "艾睿雅 ARIYA": [
-    "2024款 500",
-    "2024款 600",
-    "2024款 600 Plus",
-    "2024款 Performance",
-    "2024款 Performance Plus"
-  ]
+  "奇骏荣誉": [
+    { name: "2.0L 两驱真心版", msrp: 160800 },
+    { name: "2.0L 两驱领先版", msrp: 166800 },
+  ],
+  "探陆": [
+    { name: "380VC-TURBO 两驱舒适超高配 6座", msrp: 219800 },
+    { name: "380VC-TURBO 两驱舒适超高配 7座", msrp: 219800 },
+    { name: "380VC-TURBO 四驱大满配 6座", msrp: 249800 },
+    { name: "380VC-TURBO 四驱大满配 7座", msrp: 249800 },
+    { name: "380VC-TURBO 两驱智尚版 7座", msrp: 239800 },
+    { name: "380VC-TURBO 两驱智悦版 7座", msrp: 243800 },
+    { name: "380VC-TURBO 两驱智悦版 6座", msrp: 243800 },
+    { name: "380VC-TURBO 两驱智享版 7座", msrp: 259800 },
+    { name: "380VC-TURBO 两驱智享版 6座", msrp: 259800 },
+    { name: "380VC-TURBO 四驱智驾版 7座", msrp: 279800 },
+    { name: "380VC-TURBO 四驱智驾版 6座", msrp: 279800 },
+    { name: "380VC-TURBO 四驱智尊版 6座", msrp: 301800 },
+  ],
 };
 
 /* 初始化车系下拉 */
@@ -776,26 +774,45 @@ function onSeriesChange() {
     const o = document.createElement('option');
     o.value = ''; o.textContent = '请先选择车系';
     trimSel.appendChild(o);
+    clearMsrpHint();
     return;
   }
   const o0 = document.createElement('option');
   o0.value = ''; o0.textContent = '请选择车型';
   trimSel.appendChild(o0);
 
-  SERIES_DATA[series].forEach(function (t) {
+  SERIES_DATA[series].forEach(function (t, idx) {
     const opt = document.createElement('option');
-    opt.value = t; opt.textContent = t;
+    opt.value = String(idx);
+    opt.textContent = t.name;
     trimSel.appendChild(opt);
   });
+  clearMsrpHint();
 }
 
-/* 车型变化 → 更新测算标题 */
+/* 车型变化 → 自动填充 MSRP 到提车价 */
 function onTrimChange() {
   const series = document.getElementById('series').value;
-  const trim = document.getElementById('trim').value;
-  if (series && trim) {
-    document.getElementById('vehicleLabel').textContent = series + ' · ' + trim;
-  }
+  const idx = document.getElementById('trim').value;
+  if (!series || idx === '') { clearMsrpHint(); return; }
+
+  const item = SERIES_DATA[series][Number(idx)];
+  if (!item) return;
+
+  document.getElementById('vehicleLabel').textContent = series + ' · ' + item.name;
+
+  // 自动填充 MSRP（提车价，可手动修改）
+  document.getElementById('price').value = item.msrp;
+  const hint = document.getElementById('msrpHint');
+  hint.textContent = '已按供应表 MSRP 填入 ' + item.msrp.toLocaleString('zh-CN') +
+                     ' 元，可按实际成交价修改';
+  hint.classList.add('show');
+}
+
+function clearMsrpHint() {
+  const hint = document.getElementById('msrpHint');
+  if (hint) { hint.textContent = ''; hint.classList.remove('show'); }
+  document.getElementById('vehicleLabel').textContent = '';
 }
 
 /* Excel PMT() 等价实现，返回负值（与 Excel 一致） */
@@ -880,9 +897,13 @@ function calc() {
 
   // 车辆标签
   const seriesVal = document.getElementById('series').value;
-  const trimVal = document.getElementById('trim').value;
-  document.getElementById('vehicleLabel').textContent =
-    (seriesVal && trimVal) ? seriesVal + ' · ' + trimVal : '';
+  const trimIdx = document.getElementById('trim').value;
+  let vlabel = '';
+  if (seriesVal && trimIdx !== '') {
+    const it = SERIES_DATA[seriesVal][Number(trimIdx)];
+    if (it) vlabel = seriesVal + ' · ' + it.name;
+  }
+  document.getElementById('vehicleLabel').textContent = vlabel;
 
   document.getElementById('downAmt').innerHTML = wrap(downAmt, 0);
   document.getElementById('loanAmt').innerHTML = wrap(loanAmt, 0);
@@ -929,6 +950,7 @@ function calc() {
 function resetForm() {
   document.getElementById('series').value = '';
   onSeriesChange();
+  clearMsrpHint();
   document.getElementById('price').value = '';
   document.getElementById('downPct').value = '';
   document.getElementById('term').value = '';
