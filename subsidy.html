@@ -561,7 +561,7 @@
       <div class="form-group">
         <label for="price">提车价</label>
         <div class="input-wrapper">
-          <input type="text" id="price" placeholder="请选择车型或手动输入" value="149900">
+          <input type="text" id="price" inputmode="decimal" placeholder="请选择车型或手动输入" value="149900" oninput="onMoneyInput('price')">
           <span class="unit">元</span>
         </div>
         <div class="msrp-hint" id="msrpHint"></div>
@@ -569,8 +569,22 @@
       <div class="form-group">
         <label for="downPct">首付比例</label>
         <div class="input-wrapper pct">
-          <input type="text" id="downPct" placeholder="如 20" value="20">
+          <input type="text" id="downPct" inputmode="decimal" placeholder="如 20" value="20" oninput="onMoneyInput('downPct')">
           <span class="unit">%</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="downAmt">首付金额</label>
+        <div class="input-wrapper">
+          <input type="text" id="downAmt" inputmode="decimal" placeholder="自动计算" value="29,980" oninput="onMoneyInput('downAmt')">
+          <span class="unit">元</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="loanAmt">贷款金额</label>
+        <div class="input-wrapper">
+          <input type="text" id="loanAmt" inputmode="decimal" placeholder="自动计算" value="119,920" oninput="onMoneyInput('loanAmt')">
+          <span class="unit">元</span>
         </div>
       </div>
       <div class="form-group">
@@ -618,19 +632,19 @@
     <div class="metric-grid">
       <div class="metric">
         <div class="k">首付金额</div>
-        <div class="v" id="downAmt">—</div>
+        <div class="v" id="rDownAmt">—</div>
       </div>
       <div class="metric accent">
         <div class="k">贷款金额</div>
-        <div class="v" id="loanAmt">—</div>
+        <div class="v" id="rLoanAmt">—</div>
       </div>
       <div class="metric">
         <div class="k">客户月供</div>
-        <div class="v" id="monthly">—</div>
+        <div class="v" id="rMonthly">—</div>
       </div>
       <div class="metric">
         <div class="k">客户利息</div>
-        <div class="v" id="clientInt">—</div>
+        <div class="v" id="rClientInt">—</div>
       </div>
     </div>
 
@@ -803,6 +817,7 @@ function onTrimChange() {
 
   // 自动填充 MSRP（提车价，可手动修改）
   document.getElementById('price').value = item.msrp;
+  onMoneyInput('price');
   const hint = document.getElementById('msrpHint');
   hint.textContent = '已按供应表 MSRP 填入 ' + item.msrp.toLocaleString('zh-CN') +
                      ' 元，可按实际成交价修改';
@@ -836,6 +851,72 @@ function num(id) {
   return parseFloat(String(document.getElementById(id).value).replace(/,/g, '').trim());
 }
 
+/* ==========================================================================
+   四字段双向联动：提车价 / 首付比例 / 首付金额 / 贷款金额
+   输入任意一项，其余三项自动推导。
+   关系：首付金额 = 提车价 × 首付比例
+        贷款金额 = 提车价 − 首付金额
+   ========================================================================== */
+let syncing = false;
+let lastEdited = 'downPct';   // 默认按比例驱动（与 Excel 一致）
+
+function setVal(id, v) {
+  const el = document.getElementById(id);
+  if (v === null || !isFinite(v)) { el.value = ''; return; }
+  el.value = (id === 'downPct')
+    ? String(Math.round(v * 100) / 100)
+    : Math.round(v).toLocaleString('zh-CN');
+}
+
+function onMoneyInput(src) {
+  if (syncing) return;
+  syncing = true;
+  lastEdited = src;
+
+  const price   = num('price');
+  const downPct = num('downPct');
+  const downAmt = num('downAmt');
+  const loanAmt = num('loanAmt');
+
+  if (src === 'price') {
+    // 提车价变 → 保持比例不变，重算金额
+    if (isFinite(price) && price > 0) {
+      if (isFinite(downPct)) {
+        setVal('downAmt', price * downPct / 100);
+        setVal('loanAmt', price * (1 - downPct / 100));
+      } else if (isFinite(downAmt)) {
+        setVal('loanAmt', price - downAmt);
+        if (price !== 0) setVal('downPct', downAmt / price * 100);
+      }
+    }
+  } else if (src === 'downPct') {
+    if (isFinite(price) && isFinite(downPct)) {
+      setVal('downAmt', price * downPct / 100);
+      setVal('loanAmt', price * (1 - downPct / 100));
+    }
+  } else if (src === 'downAmt') {
+    // 首付金额变 → 反推比例，重算贷款额
+    if (isFinite(price) && price > 0 && isFinite(downAmt)) {
+      setVal('downPct', downAmt / price * 100);
+      setVal('loanAmt', price - downAmt);
+    } else if (isFinite(downAmt) && isFinite(loanAmt)) {
+      setVal('price', downAmt + loanAmt);
+      if (downAmt + loanAmt !== 0) setVal('downPct', downAmt / (downAmt + loanAmt) * 100);
+    }
+  } else if (src === 'loanAmt') {
+    // 贷款金额变 → 反推首付
+    if (isFinite(price) && price > 0 && isFinite(loanAmt)) {
+      setVal('downAmt', price - loanAmt);
+      setVal('downPct', (price - loanAmt) / price * 100);
+    } else if (isFinite(downAmt) && isFinite(loanAmt)) {
+      setVal('price', downAmt + loanAmt);
+      if (downAmt + loanAmt !== 0) setVal('downPct', downAmt / (downAmt + loanAmt) * 100);
+    }
+  }
+
+  syncing = false;
+}
+
 function validate(price, downPct, term, settleRate, clientRate) {
   if (isNaN(price) || price <= 0) { alert('请输入有效的提车价'); return false; }
   if (isNaN(downPct) || downPct < 0 || downPct >= 100) { alert('首付比例请输入 0–99 之间的数值'); return false; }
@@ -847,8 +928,17 @@ function validate(price, downPct, term, settleRate, clientRate) {
 }
 
 function calc() {
-  const price = num('price');
-  const downPct = num('downPct');
+  // 兜底：从金额反推（正常情况下 onMoneyInput 已保持同步）
+  let price = num('price');
+  let downPct = num('downPct');
+  const dAmt = num('downAmt');
+  const lAmt = num('loanAmt');
+  if ((!isFinite(price) || price <= 0) && isFinite(dAmt) && isFinite(lAmt)) {
+    price = dAmt + lAmt;
+    downPct = price > 0 ? dAmt / price * 100 : NaN;
+  } else if ((!isFinite(downPct)) && isFinite(price) && price > 0 && isFinite(dAmt)) {
+    downPct = dAmt / price * 100;
+  }
   const term = num('term');
   const settleRate = num('settleRate');
   const clientRate = num('clientRate');
@@ -856,9 +946,19 @@ function calc() {
   if (!validate(price, downPct, term, settleRate, clientRate)) return;
 
   const downRatio = downPct / 100;
-  const downAmt = price * downRatio;          // D = B*C
-  const loanRatio = 1 - downRatio;            // E = 1-C
-  const loanAmt = price - downAmt;            // F = B-D
+  // 用户直接编辑了金额时，以输入的金额为准（比例仅作展示，取整会带来偏差）
+  let downAmt, loanAmt;
+  if (lastEdited === 'downAmt' && isFinite(dAmt)) {
+    downAmt = dAmt;
+    loanAmt = price - downAmt;
+  } else if (lastEdited === 'loanAmt' && isFinite(lAmt)) {
+    loanAmt = lAmt;
+    downAmt = price - loanAmt;
+  } else {
+    downAmt = price * downRatio;              // D = B*C
+    loanAmt = price - downAmt;                // F = B-D
+  }
+  const loanRatio = price > 0 ? loanAmt / price : (1 - downRatio);  // E = 1-C
 
   const sRateM = settleRate / 100 / 12;       // H/12
   const cRateM = clientRate / 100 / 12;       // I/12
@@ -905,10 +1005,10 @@ function calc() {
   }
   document.getElementById('vehicleLabel').textContent = vlabel;
 
-  document.getElementById('downAmt').innerHTML = wrap(downAmt, 0);
-  document.getElementById('loanAmt').innerHTML = wrap(loanAmt, 0);
-  document.getElementById('monthly').innerHTML = wrap(clientMonthly, 2);
-  document.getElementById('clientInt').innerHTML = wrap(clientInterest, 2);
+  document.getElementById('rDownAmt').innerHTML = wrap(downAmt, 0);
+  document.getElementById('rLoanAmt').innerHTML = wrap(loanAmt, 0);
+  document.getElementById('rMonthly').innerHTML = wrap(clientMonthly, 2);
+  document.getElementById('rClientInt').innerHTML = wrap(clientInterest, 2);
 
   const rows = [
     ['提车价', money0(price) + ' 元'],
@@ -953,6 +1053,8 @@ function resetForm() {
   clearMsrpHint();
   document.getElementById('price').value = '';
   document.getElementById('downPct').value = '';
+  document.getElementById('downAmt').value = '';
+  document.getElementById('loanAmt').value = '';
   document.getElementById('term').value = '';
   document.getElementById('settleRate').value = '';
   document.getElementById('clientRate').value = '';
